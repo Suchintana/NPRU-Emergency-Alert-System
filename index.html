@@ -1,0 +1,1635 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NPRU Emergency Alert System</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts (Sarabun) -->
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- html2pdf.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <style>
+        :root {
+            --npru-red: #D32F2F;
+            --npru-pink: #FF4081;
+            --npru-dark: #212121;
+            --npru-light: #F8F9FA;
+            --npru-green: #006837;
+        }
+
+        body {
+            font-family: 'Sarabun', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: #f4f6f9;
+            color: var(--npru-dark);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .navbar-custom {
+            background: linear-gradient(135deg, var(--npru-red), #900C3F);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+        }
+
+        .navbar-custom .navbar-brand,
+        .navbar-custom .nav-link,
+        .navbar-custom .navbar-text {
+            color: #ffffff !important;
+            font-weight: 600;
+        }
+
+        .navbar-custom .nav-link:hover {
+            opacity: 0.85;
+        }
+
+        .brand-logo {
+            height: 46px;
+            width: auto;
+            object-fit: contain;
+            filter: drop-shadow(0px 2px 4px rgba(0, 0, 0, 0.2));
+            transition: transform 0.2s ease;
+        }
+
+        .brand-logo:hover {
+            transform: scale(1.05);
+        }
+
+        .hero-logo {
+            height: 140px;
+            width: auto;
+            object-fit: contain;
+            filter: drop-shadow(0px 4px 10px rgba(0, 0, 0, 0.15));
+            transition: transform 0.3s ease;
+        }
+
+        .hero-logo:hover {
+            transform: scale(1.03);
+        }
+
+        /* Emergency Alert Ticker */
+        .ticker-wrap {
+            background-color: #e8f5e9;
+            border-bottom: 2px solid #2e7d32;
+            padding: 8px 0;
+            display: flex;
+            align-items: center;
+            overflow: hidden;
+            box-shadow: inset 0 -2px 5px rgba(0, 0, 0, 0.03);
+            transition: all 0.3s ease;
+        }
+
+        .ticker-title {
+            background-color: #2e7d32;
+            color: white;
+            padding: 4px 14px;
+            font-weight: 700;
+            border-radius: 20px;
+            margin-left: 15px;
+            margin-right: 15px;
+            white-space: nowrap;
+            font-size: 0.9rem;
+        }
+
+        .ticker-content {
+            white-space: nowrap;
+            overflow: hidden;
+            width: 100%;
+        }
+
+        .ticker-text {
+            display: inline-block;
+            padding-left: 100%;
+            animation: marquee 25s linear infinite;
+            color: #2e7d32;
+            font-weight: 600;
+        }
+
+        @keyframes marquee {
+            0% {
+                transform: translate(0, 0);
+            }
+
+            100% {
+                transform: translate(-100%, 0);
+            }
+        }
+
+        @keyframes pulse-red {
+            0% {
+                box-shadow: 0 0 0 0 rgba(211, 47, 47, 0.7);
+            }
+
+            70% {
+                box-shadow: 0 0 0 10px rgba(211, 47, 47, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(211, 47, 47, 0);
+            }
+        }
+
+        .main-container {
+            display: flex;
+            flex: 1;
+        }
+
+        #adminSidebar {
+            width: 260px;
+            background: #ffffff;
+            border-right: 1px solid #e0e0e0;
+            padding: 20px 15px;
+            box-shadow: 2px 0 8px rgba(0, 0, 0, 0.03);
+        }
+
+        .sidebar-link {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            color: #555;
+            text-decoration: none;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            font-weight: 500;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .sidebar-link:hover,
+        .sidebar-link.active {
+            background-color: #ffebee;
+            color: var(--npru-red);
+            font-weight: 700;
+        }
+
+        .content-area {
+            flex: 1;
+            padding: 25px;
+            width: 100%;
+        }
+
+        .card {
+            border: none;
+            border-radius: 14px;
+            box-shadow: 0 4px 18px rgba(0, 0, 0, 0.04);
+            margin-bottom: 24px;
+        }
+
+        .card-header-custom {
+            background: linear-gradient(135deg, var(--npru-red), #c62828);
+            color: white;
+            border-radius: 14px 14px 0 0 !important;
+            font-weight: 700;
+        }
+
+        .btn-danger-custom {
+            background-color: var(--npru-red);
+            border-color: var(--npru-red);
+            color: white;
+        }
+
+        .btn-danger-custom:hover {
+            background-color: #b71c1c;
+            border-color: #b71c1c;
+            color: white;
+        }
+
+        .status-badge {
+            font-size: 0.8rem;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+
+        footer {
+            background-color: #1e1e1e;
+            color: #d1d1d1;
+            padding: 20px 0;
+            margin-top: auto;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.85);
+            z-index: 9999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            backdrop-filter: blur(3px);
+        }
+
+        .pdpa-box {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 12px;
+            max-height: 110px;
+            overflow-y: auto;
+            font-size: 0.85rem;
+            color: #495057;
+            line-height: 1.5;
+        }
+
+        .chart-card-body {
+            position: relative;
+            min-height: 260px;
+        }
+
+        @media (max-width: 768px) {
+            .main-container {
+                flex-direction: column;
+            }
+
+            #adminSidebar {
+                width: 100%;
+                border-right: none;
+                border-bottom: 1px solid #ddd;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="loading-overlay hidden">
+        <div class="spinner-border text-danger" role="status" style="width: 3.5rem; height: 3.5rem;"></div>
+        <h5 class="mt-3 text-danger fw-bold">กำลังประมวลผลระบบ...</h5>
+    </div>
+
+    <!-- Navigation Bar -->
+    <nav class="navbar navbar-expand-lg navbar-custom">
+        <div class="container-fluid px-4">
+            <a class="navbar-brand d-flex align-items-center" href="#" onclick="switchView('welcome')">
+                <img src="https://npru.ac.th/assets/img/Npru-logo.png" alt="NPRU Logo"
+                    class="brand-logo me-2 bg-white rounded-circle p-1"
+                    onerror="this.onerror=null; this.src='https://placehold.co/46x60/006837/ffffff?text=NPRU';">
+                <span class="fs-5 fw-bold">NPRU Emergency Alert</span>
+            </a>
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon" style="filter: invert(1);"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto" id="navLinksUser">
+                    <!-- Populated via JS -->
+                </ul>
+                <div class="navbar-text d-flex align-items-center" id="userProfileArea">
+                    <span id="displayUserName" class="me-3 fw-semibold"></span>
+                    <button class="btn btn-sm btn-light text-danger fw-bold px-3 rounded-pill" id="btnLogin"
+                        onclick="showLoginModal()">
+                        <i class="fa-solid fa-right-to-bracket me-1"></i> เข้าสู่ระบบ
+                    </button>
+                    <button class="btn btn-sm btn-outline-light rounded-pill px-3 hidden" id="btnLogout"
+                        onclick="logout()">
+                        <i class="fa-solid fa-right-from-bracket me-1"></i> ออกจากระบบ
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Emergency Alert Ticker Header -->
+    <div class="ticker-wrap" id="emergencyTicker">
+        <div class="ticker-title"><i class="fa-solid fa-shield-halved me-1"></i> สถานการณ์ปกติ</div>
+        <div class="ticker-content">
+            <div class="ticker-text" id="tickerMessage">ไม่มีเหตุการณ์ฉุกเฉินในขณะนี้ - สถานการณ์ปกติ</div>
+        </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="container-fluid main-container p-0">
+
+        <!-- Sidebar สำหรับ Admin -->
+        <div id="adminSidebar" class="hidden">
+            <div class="text-secondary small fw-bold text-uppercase mb-3 px-2"><i
+                    class="fa-solid fa-shield-halved me-1"></i> เมนูผู้ดูแลระบบ</div>
+            <a href="#" class="sidebar-link active" id="slink-adminDashboard" onclick="switchView('adminDashboard')">
+                <i class="fa-solid fa-chart-pie me-2"></i> สถิติและแผงควบคุม
+            </a>
+            <a href="#" class="sidebar-link" id="slink-adminIncidents" onclick="switchView('adminIncidents')">
+                <i class="fa-solid fa-list-check me-2"></i> จัดการเหตุการณ์
+            </a>
+            <a href="#" class="sidebar-link" id="slink-adminUsers" onclick="switchView('adminUsers')">
+                <i class="fa-solid fa-users-gear me-2"></i> จัดการผู้ใช้งาน
+            </a>
+        </div>
+
+        <div class="content-area">
+
+            <!-- หน้าต้อนรับ (Welcome View) -->
+            <div id="viewWelcome" class="text-center py-5">
+                <div class="mb-4">
+                    <img src="https://npru.ac.th/assets/img/Npru-logo.png" alt="NPRU Emblem" class="hero-logo mb-3"
+                        onerror="this.onerror=null; this.src='https://placehold.co/150x200/006837/ffffff?text=NPRU+Logo';">
+                    <h1 class="display-5 text-danger fw-bold">NPRU Emergency Alert System</h1>
+                    <p class="lead text-muted">ระบบรับแจ้งเหตุฉุกเฉินและประสานงานความปลอดภัย มหาวิทยาลัยราชภัฏนครปฐม</p>
+                </div>
+
+                <div class="row justify-content-center my-4">
+                    <div class="col-md-8 col-lg-6">
+                        <div class="card p-4 shadow-sm border-0 bg-white">
+                            <h5 class="fw-bold mb-3"><i
+                                    class="fa-solid fa-circle-info text-danger me-2"></i>เริ่มต้นใช้งาน</h5>
+                            <p class="text-secondary mb-4">เข้าสู่ระบบด้วยบัญชีผู้ใช้หรือลงทะเบียนเพื่อแจ้งเหตุฉุกเฉิน
+                                และติดตามสถานะการช่วยเหลือได้ทันที</p>
+                            <div class="d-grid gap-3 d-sm-flex justify-content-sm-center">
+                                <button class="btn btn-danger-custom btn-lg px-4 rounded-pill shadow-sm"
+                                    onclick="showLoginModal()">
+                                    <i class="fa-solid fa-right-to-bracket me-2"></i> เข้าสู่ระบบ
+                                </button>
+                                <button class="btn btn-outline-danger btn-lg px-4 rounded-pill"
+                                    onclick="showSetupModal()">
+                                    <i class="fa-solid fa-user-plus me-2"></i> ลงทะเบียนใหม่
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- หน้าแจ้งเหตุฉุกเฉิน (Report View) -->
+            <div id="viewReport" class="hidden">
+                <div class="row justify-content-center">
+                    <div class="col-lg-8">
+                        <div class="card shadow-lg border-0">
+                            <div class="card-header card-header-custom p-3 px-4 d-flex align-items-center">
+                                <img src="https://npru.ac.th/assets/img/Npru-logo.png" alt="NPRU Logo"
+                                    style="height: 30px; width: auto;" class="me-2 bg-white rounded-circle p-1"
+                                    onerror="this.style.display='none'">
+                                <h4 class="mb-0"><i class="fa-solid fa-bullhorn me-2"></i> ฟอร์มแจ้งเหตุฉุกเฉิน</h4>
+                            </div>
+                            <div class="card-body p-4">
+                                <form id="formReportIncident" onsubmit="handleReport(event)">
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">ประเภทเหตุฉุกเฉิน <span
+                                                class="text-danger">*</span></label>
+                                        <select class="form-select form-select-lg" id="incType" required>
+                                            <option value="">-- เลือกประเภทเหตุ --</option>
+                                            <option value="🚑 พยาบาล / อุบัติเหตุ">🚑 พยาบาล / อุบัติเหตุ</option>
+                                            <option value="🔥 อัคคีภัย / ไฟไหม้">🔥 อัคคีภัย / ไฟไหม้</option>
+                                            <option value="👤 บุคคลน่าสงสัย / ทะเลาะวิวาท">👤 บุคคลน่าสงสัย /
+                                                ทะเลาะวิวาท</option>
+                                            <option value="🐍 สัตว์มีพิษ / สัตว์อันตราย">🐍 สัตว์มีพิษ / สัตว์อันตราย
+                                            </option>
+                                            <option value="💧 ท่อน้ำแตก / ไฟฟ้าลัดวงจร">💧 ท่อน้ำแตก / ไฟฟ้าลัดวงจร
+                                            </option>
+                                            <option value="อื่นๆ">อื่นๆ</option>
+                                        </select>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">สถานที่ / อาคาร / จุดเกิดเหตุ <span
+                                                class="text-danger">*</span></label>
+                                        <input type="text" class="form-control form-control-lg" id="incLocation"
+                                            placeholder="เช่น อาคารเรียน A2 ชั้น 3 หน้าห้องน้ำชาย" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label fw-bold">รายละเอียดเหตุการณ์เพิ่มเติม</label>
+                                        <textarea class="form-control" id="incDescription" rows="3"
+                                            placeholder="ระบุรายละเอียดเพิ่มเติม เช่น จำนวนผู้บาดเจ็บ หรือลักษณะเหตุการณ์..."></textarea>
+                                    </div>
+                                    <div class="mb-4">
+                                        <label class="form-label fw-bold"><i class="fa-solid fa-paperclip me-1"></i>
+                                            แนบรูปภาพประกอบ (ถ้ามี)</label>
+                                        <input type="file" class="form-control" id="incFile" accept="image/*">
+                                        <div class="form-text text-muted">รองรับไฟล์รูปภาพ (JPG, PNG)</div>
+                                    </div>
+                                    <div class="d-grid">
+                                        <button type="submit" class="btn btn-danger-custom btn-lg shadow">
+                                            <i class="fa-solid fa-paper-plane me-2"></i> ส่งข้อมูลแจ้งเหตุทันที
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- หน้าประวัติการแจ้งเหตุของผู้ใช้ (History View) -->
+            <div id="viewHistory" class="hidden">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h3 class="text-danger fw-bold"><i class="fa-solid fa-clock-rotate-left me-2"></i>
+                        ประวัติการแจ้งเหตุของฉัน</h3>
+                    <button class="btn btn-outline-danger btn-sm rounded-pill"
+                        onclick="exportToPDF('viewHistory', 'My_Incident_History')">
+                        <i class="fa-solid fa-file-pdf me-1"></i> ดาวน์โหลด PDF
+                    </button>
+                </div>
+                <div class="card shadow-sm">
+                    <div class="card-body p-0 table-responsive">
+                        <table class="table table-hover mb-0 align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>รหัสเหตุ</th>
+                                    <th>วันที่-เวลา</th>
+                                    <th>ประเภท</th>
+                                    <th>สถานที่</th>
+                                    <th>สถานะ</th>
+                                    <th>หลักฐาน</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableUserHistory">
+                                <!-- Populated via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- หน้าโปรไฟล์ผู้ใช้ (Profile View) -->
+            <div id="viewProfile" class="hidden">
+                <div class="row justify-content-center">
+                    <div class="col-lg-8">
+                        <div class="card shadow-lg border-0">
+                            <div class="card-header card-header-custom p-3 px-4">
+                                <h4 class="mb-0"><i class="fa-solid fa-id-card me-2"></i> ข้อมูลโปรไฟล์ผู้ใช้งาน</h4>
+                            </div>
+                            <div class="card-body p-4">
+                                <form id="formUserProfile" onsubmit="handleUpdateProfile(event)">
+                                    <div class="row mb-3">
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label text-muted fw-bold">อีเมล</label>
+                                            <input type="email" class="form-control bg-light" id="profileEmail"
+                                                readonly>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label text-muted fw-bold">สิทธิ์การใช้งาน (Role)</label>
+                                            <input type="text" class="form-control bg-light" id="profileRole" readonly>
+                                        </div>
+                                    </div>
+                                    <div class="row mb-3">
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label fw-bold">ชื่อ - นามสกุล <span
+                                                    class="text-danger">*</span></label>
+                                            <input type="text" class="form-control" id="profileName" required>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label fw-bold">รหัสนักศึกษา / รหัสบุคลากร <span
+                                                    class="text-danger">*</span></label>
+                                            <input type="text" class="form-control" id="profileId" required>
+                                        </div>
+                                    </div>
+                                    <div class="row mb-3">
+                                        <div class="col-md-4 mb-3">
+                                            <label class="form-label fw-bold">หมู่เรียน / แผนกงาน</label>
+                                            <input type="text" class="form-control" id="profileGroup">
+                                        </div>
+                                        <div class="col-md-4 mb-3">
+                                            <label class="form-label fw-bold">คณะ / หน่วยงาน <span
+                                                    class="text-danger">*</span></label>
+                                            <select class="form-select" id="profileFaculty" required
+                                                onchange="onFacultySelectChange('profileFaculty', 'profileMajor')">
+                                                <option value="">-- เลือกคณะ/หน่วยงาน --</option>
+                                                <option value="คณะครุศาสตร์">คณะครุศาสตร์</option>
+                                                <option value="คณะมนุษยศาสตร์และสังคมศาสตร์">คณะมนุษยศาสตร์และสังคมศาสตร์</option>
+                                                <option value="คณะวิทยาศาสตร์และเทคโนโลยี">คณะวิทยาศาสตร์และเทคโนโลยี</option>
+                                                <option value="คณะวิทยาการจัดการ">คณะวิทยาการจัดการ</option>
+                                                <option value="คณะพยาบาลศาสตร์">คณะพยาบาลศาสตร์</option>
+                                                <option value="สายสนับสนุน/บุคลากร">สายสนับสนุน/บุคลากร</option>
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4 mb-3">
+                                            <label class="form-label fw-bold">สาขาวิชา / หน่วยงานย่อย <span
+                                                    class="text-danger">*</span></label>
+                                            <select class="form-select" id="profileMajor" required disabled>
+                                                <option value="">-- กรุณาเลือกคณะก่อน --</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="d-grid mt-4">
+                                        <button type="submit" class="btn btn-success btn-lg shadow-sm">
+                                            <i class="fa-solid fa-floppy-disk me-2"></i> บันทึกข้อมูลส่วนตัว
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- หน้าแผงควบคุมสถิติสำหรับ Admin (Admin Dashboard View) -->
+            <div id="viewAdminDashboard" class="hidden">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h3 class="text-danger fw-bold"><i class="fa-solid fa-chart-line me-2"></i> สถิติและภาพรวมระบบ</h3>
+                    <div>
+                        <button class="btn btn-outline-primary btn-sm me-2 rounded-pill" onclick="loadAdminDashboard()">
+                            <i class="fa-solid fa-arrows-rotate me-1"></i> รีเฟรชข้อมูล
+                        </button>
+                        <button class="btn btn-outline-danger btn-sm rounded-pill"
+                            onclick="exportToPDF('viewAdminDashboard', 'Admin_Dashboard_Report')">
+                            <i class="fa-solid fa-file-pdf me-1"></i> ออกรายงาน PDF
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Metric Cards -->
+                <div class="row g-3 mb-4">
+                    <div class="col-md-4">
+                        <div class="card border-0 shadow-sm bg-primary text-white p-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <div class="small text-uppercase">เหตุการณ์ทั้งหมด</div>
+                                    <h2 class="fw-bold mb-0" id="statTotal">0</h2>
+                                </div>
+                                <i class="fa-solid fa-triangle-exclamation fa-2x opacity-50"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card border-0 shadow-sm bg-warning text-dark p-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <div class="small text-uppercase">กำลังดำเนินการ</div>
+                                    <h2 class="fw-bold mb-0" id="statActive">0</h2>
+                                </div>
+                                <i class="fa-solid fa-spinner fa-2x opacity-50"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card border-0 shadow-sm bg-success text-white p-3">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <div class="small text-uppercase">เสร็จสิ้นแล้ว</div>
+                                    <h2 class="fw-bold mb-0" id="statResolved">0</h2>
+                                </div>
+                                <i class="fa-solid fa-circle-check fa-2x opacity-50"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts Section -->
+                <div class="row g-4">
+                    <div class="col-lg-6">
+                        <div class="card shadow-sm h-100">
+                            <div class="card-body">
+                                <h5 class="fw-bold text-secondary mb-3"><i
+                                        class="fa-solid fa-chart-pie me-2 text-danger"></i>แยกตามประเภทเหตุการณ์</h5>
+                                <div class="chart-card-body">
+                                    <canvas id="chartIncTypes"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-6">
+                        <div class="card shadow-sm h-100">
+                            <div class="card-body">
+                                <h5 class="fw-bold text-secondary mb-3"><i
+                                        class="fa-solid fa-chart-column me-2 text-danger"></i>สถิติผู้ใช้งานแยกตามคณะ
+                                </h5>
+                                <div class="chart-card-body">
+                                    <canvas id="chartFaculties"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- หน้าจัดการเหตุการณ์สำหรับ Admin (Admin Incidents View) -->
+            <div id="viewAdminIncidents" class="hidden">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h3 class="text-danger fw-bold"><i class="fa-solid fa-list-check me-2"></i>
+                        รายการรับแจ้งเหตุการณ์ทั้งหมด</h3>
+                    <button class="btn btn-outline-danger btn-sm rounded-pill"
+                        onclick="exportToPDF('viewAdminIncidents', 'Admin_Incidents_Report')">
+                        <i class="fa-solid fa-file-pdf me-1"></i> พิมพ์รายงาน PDF
+                    </button>
+                </div>
+                <div class="card shadow-sm">
+                    <div class="card-body p-0 table-responsive">
+                        <table class="table table-hover mb-0 align-middle">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>รหัสเหตุ</th>
+                                    <th>วันที่-เวลา</th>
+                                    <th>ประเภท</th>
+                                    <th>สถานที่</th>
+                                    <th>ผู้แจ้งเหตุ</th>
+                                    <th>สถานะ</th>
+                                    <th>รูปแนบ</th>
+                                    <th class="text-center">จัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableAdminIncidents">
+                                <!-- Populated via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- หน้าจัดการผู้ใช้งานสำหรับ Admin (Admin Users View) -->
+            <div id="viewAdminUsers" class="hidden">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h3 class="text-danger fw-bold"><i class="fa-solid fa-users-gear me-2"></i> รายชื่อผู้ใช้งานในระบบ
+                    </h3>
+                    <button class="btn btn-outline-danger btn-sm rounded-pill"
+                        onclick="exportToPDF('viewAdminUsers', 'Admin_Users_Report')">
+                        <i class="fa-solid fa-file-pdf me-1"></i> พิมพ์รายชื่อ PDF
+                    </button>
+                </div>
+                <div class="card shadow-sm">
+                    <div class="card-body p-0 table-responsive">
+                        <table class="table table-hover mb-0 align-middle">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>ชื่อ - นามสกุล</th>
+                                    <th>รหัส</th>
+                                    <th>อีเมล</th>
+                                    <th>คณะ / หน่วยงาน</th>
+                                    <th>สาขาวิชา</th>
+                                    <th>สิทธิ์</th>
+                                    <th>สถานะบัญชี</th>
+                                    <th class="text-center">จัดการ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableAdminUsers">
+                                <!-- Populated via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Modal: Login -->
+    <div class="modal fade" id="modalLogin" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header card-header-custom">
+                    <h5 class="modal-title fw-bold"><i class="fa-solid fa-right-to-bracket me-2"></i>เข้าสู่ระบบ</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <form id="formLogin" onsubmit="handleLogin(event)">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">อีเมล (Email)</label>
+                            <input type="email" id="loginEmail" class="form-control form-control-lg" required
+                                placeholder="name@npru.ac.th">
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label fw-bold">รหัสผ่าน (Password)</label>
+                            <div class="input-group">
+                                <input type="password" id="loginPassword" class="form-control form-control-lg" required>
+                                <button class="btn btn-outline-secondary" type="button"
+                                    onclick="togglePasswordVisibility('loginPassword', 'eyeLoginPassword')">
+                                    <i class="fa-solid fa-eye" id="eyeLoginPassword"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="text-end mb-3">
+                            <a href="#" onclick="showForgotPasswordModal()"
+                                class="text-decoration-none small text-danger fw-semibold">
+                                <i class="fa-solid fa-key me-1"></i> ลืมรหัสผ่าน?
+                            </a>
+                        </div>
+                        <button type="submit" class="btn btn-danger-custom btn-lg w-100 rounded-pill shadow-sm mb-3">
+                            เข้าสู่ระบบ
+                        </button>
+                    </form>
+                    <div class="text-center">
+                        ยังไม่มีบัญชีใช้งาน? <a href="#" onclick="showSetupModal()"
+                            class="text-danger fw-bold">สมัครสมาชิก</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Forgot Password -->
+    <div class="modal fade" id="modalForgotPassword" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header card-header-custom">
+                    <h5 class="modal-title fw-bold"><i class="fa-solid fa-key me-2"></i>รีเซ็ตรหัสผ่าน / ลืมรหัสผ่าน
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <form id="formForgotPassword" onsubmit="handleResetPassword(event)">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">อีเมลที่ลงทะเบียน <span
+                                    class="text-danger">*</span></label>
+                            <input type="email" id="resetEmail" class="form-control" required
+                                placeholder="example@npru.ac.th">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">รหัสนักศึกษา / รหัสบุคลากร <span
+                                    class="text-danger">*</span></label>
+                            <input type="text" id="resetId" class="form-control" required placeholder="640000000">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">รหัสผ่านใหม่ <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <input type="password" id="resetPassword" class="form-control" required minlength="4"
+                                    oninput="checkResetPasswordMatch()">
+                                <button class="btn btn-outline-secondary" type="button"
+                                    onclick="togglePasswordVisibility('resetPassword', 'eyeResetPassword')">
+                                    <i class="fa-solid fa-eye" id="eyeResetPassword"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label fw-bold">ยืนยันรหัสผ่านใหม่ <span
+                                    class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <input type="password" id="resetConfirmPassword" class="form-control" required
+                                    minlength="4" oninput="checkResetPasswordMatch()">
+                                <button class="btn btn-outline-secondary" type="button"
+                                    onclick="togglePasswordVisibility('resetConfirmPassword', 'eyeResetConfirmPassword')">
+                                    <i class="fa-solid fa-eye" id="eyeResetConfirmPassword"></i>
+                                </button>
+                            </div>
+                            <div id="resetPassMatchMsg" class="form-text fw-bold mt-1"></div>
+                        </div>
+                        <button type="submit" class="btn btn-danger-custom btn-lg w-100 rounded-pill shadow-sm">
+                            บันทึกรหัสผ่านใหม่
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Register / Setup -->
+    <div class="modal fade" id="modalRegister" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header card-header-custom">
+                    <h5 class="modal-title fw-bold"><i class="fa-solid fa-user-plus me-2"></i>ลงทะเบียนผู้ใช้งานใหม่
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <form id="formRegister" onsubmit="handleRegister(event)">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">ชื่อ - นามสกุล <span
+                                        class="text-danger">*</span></label>
+                                <input type="text" id="regName" class="form-control" required
+                                    placeholder="นายสมชาย ใจดี">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">รหัสนักศึกษา / รหัสบุคลากร <span
+                                        class="text-danger">*</span></label>
+                                <input type="text" id="regId" class="form-control" required placeholder="640000000">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label class="form-label fw-bold">อีเมล <span class="text-danger">*</span></label>
+                                <input type="email" id="regEmail" class="form-control" required
+                                    placeholder="example@npru.ac.th">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">รหัสผ่าน <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <input type="password" id="regPassword" class="form-control" required minlength="4"
+                                        oninput="checkRegisterPasswordMatch()">
+                                    <button class="btn btn-outline-secondary" type="button"
+                                        onclick="togglePasswordVisibility('regPassword', 'eyeRegPassword')">
+                                        <i class="fa-solid fa-eye" id="eyeRegPassword"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">ยืนยันรหัสผ่าน <span
+                                        class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <input type="password" id="regConfirmPassword" class="form-control" required
+                                        minlength="4" oninput="checkRegisterPasswordMatch()">
+                                    <button class="btn btn-outline-secondary" type="button"
+                                        onclick="togglePasswordVisibility('regConfirmPassword', 'eyeRegConfirmPassword')">
+                                        <i class="fa-solid fa-eye" id="eyeRegConfirmPassword"></i>
+                                    </button>
+                                </div>
+                                <div id="regPassMatchMsg" class="form-text fw-bold mt-1"></div>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label fw-bold">หมู่เรียน / แผนกงาน</label>
+                                <input type="text" id="regGroup" class="form-control" placeholder="เช่น 64/12">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label fw-bold">คณะ / หน่วยงาน <span
+                                        class="text-danger">*</span></label>
+                                <select id="regFaculty" class="form-select" required
+                                    onchange="onFacultySelectChange('regFaculty', 'regMajor')">
+                                    <option value="">-- เลือกคณะ/หน่วยงาน --</option>
+                                    <option value="คณะครุศาสตร์">คณะครุศาสตร์</option>
+                                    <option value="คณะมนุษยศาสตร์และสังคมศาสตร์">คณะมนุษยศาสตร์และสังคมศาสตร์</option>
+                                    <option value="คณะวิทยาศาสตร์และเทคโนโลยี">คณะวิทยาศาสตร์และเทคโนโลยี</option>
+                                    <option value="คณะวิทยาการจัดการ">คณะวิทยาการจัดการ</option>
+                                    <option value="คณะพยาบาลศาสตร์">คณะพยาบาลศาสตร์</option>
+                                    <option value="สายสนับสนุน/บุคลากร">สายสนับสนุน/บุคลากร</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label fw-bold">สาขาวิชา / หน่วยงานย่อย <span
+                                        class="text-danger">*</span></label>
+                                <select id="regMajor" class="form-select" required disabled>
+                                    <option value="">-- กรุณาเลือกคณะก่อน --</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small text-muted">ข้อตกลงและนโยบายความเป็นส่วนตัว
+                                (PDPA)</label>
+                            <div class="pdpa-box">
+                                ข้าพเจ้ายินยอมให้ระบบ NPRU Emergency Alert เก็บรวบรวม ใช้ และเปิดเผยข้อมูลส่วนบุคคล
+                                ได้แก่ ชื่อ-นามสกุล รหัสนักศึกษา/พนักงาน อีเมล และข้อมูลการแจ้งเหตุฉุกเฉิน
+                                เพื่อวัตถุประสงค์ในการประสานงานช่วยเหลือ ยืนยันตัวตน
+                                และรักษาความปลอดภัยภายในมหาวิทยาลัยราชภัฏนครปฐมตามกฎหมาย PDPA
+                            </div>
+                        </div>
+                        <div class="form-check mb-4">
+                            <input class="form-check-input" type="checkbox" id="regPdpa" required>
+                            <label class="form-check-label fw-bold small" for="regPdpa">
+                                ข้าพเจ้ายอมรับเงื่อนไขและยินยอมให้จัดการข้อมูลตามนโยบาย PDPA <span
+                                    class="text-danger">*</span>
+                            </label>
+                        </div>
+                        <button type="submit" class="btn btn-success btn-lg w-100 rounded-pill shadow">
+                            ลงทะเบียนผู้ใช้งาน
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="text-center">
+        <div class="container">
+            <small>© 2026 NPRU Emergency Alert System | มหาวิทยาลัยราชภัฏนครปฐม</small>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        // ข้อมูลตัวเลือกสาขาวิชา/หน่วยงานย่อยตามคณะ
+        const facultyMajorsData = {
+            "คณะครุศาสตร์": [
+                "สาขาวิชาการศึกษาปฐมวัย",
+                "สาขาวิชาภาษาไทย",
+                "สาขาวิชาภาษาอังกฤษ",
+                "สาขาวิชาสังคมศึกษา",
+                "สาขาวิชาคณิตศาสตร์",
+                "สาขาวิชาวิทยาศาสตร์ทั่วไป",
+                "สาขาวิชาพลศึกษา",
+                "สาขาวิชาดนตรีศึกษา",
+                "สาขาวิชาศิลปศึกษา",
+                "สาขาวิชาคอมพิวเตอร์ศึกษา"
+            ],
+            "คณะมนุษยศาสตร์และสังคมศาสตร์": [
+                "สาขาวิชาภาษาไทย",
+                "สาขาวิชาภาษาอังกฤษ",
+                "สาขาวิชาภาษาจีน",
+                "สาขาวิชาภาษาญี่ปุ่น",
+                "สาขาวิชาการพัฒนาชุมชน",
+                "สาขาวิชารัฐประศาสนศาสตร์",
+                "สาขาวิชานิติศาสตร์",
+                "สาขาวิชาดนตรีสากล",
+                "สาขาวิชาสารสนเทศศาสตร์",
+                "สาขาวิชาการออกแบบผลิตภัณฑ์และสื่อ"
+            ],
+            "คณะวิทยาศาสตร์และเทคโนโลยี": [
+                "สาขาวิชาวิทยาการคอมพิวเตอร์",
+                "สาขาวิชาเทคโนโลยีสารสนเทศ",
+                "สาขาวิชาวิศวกรรมซอฟต์แวร์",
+                "สาขาวิชาวิทยาศาสตร์และเทคโนโลยีการอาหาร",
+                "สาขาวิชาเคมี",
+                "สาขาวิชาชีววิทยา",
+                "สาขาวิชาอาชีวอนามัยและความปลอดภัย",
+                "สาขาวิชาเทคโนโลยีมัลติมีเดีย",
+                "สาขาวิชาวิทยาศาสตร์สิ่งแวดล้อม"
+            ],
+            "คณะวิทยาการจัดการ": [
+                "สาขาวิชาการบัญชี",
+                "สาขาวิชาการบริหารทรัพยากรมนุษย์",
+                "สาขาวิชาการตลาด",
+                "สาขาวิชาการจัดการทั่วไป",
+                "สาขาวิชาคอมพิวเตอร์ธุรกิจ",
+                "สาขาวิชาการจัดการโลจิสติกส์",
+                "สาขาวิชาอุตสาหกรรมท่องเที่ยวและบริการ",
+                "สาขาวิชาการนิเทศศาสตร์"
+            ],
+            "คณะพยาบาลศาสตร์": [
+                "สาขาวิชาพยาบาลศาสตร์"
+            ],
+            "สายสนับสนุน/บุคลากร": [
+                "สำนักงานอธิการบดี",
+                "สำนักวิทยบริการและเทคโนโลยีสารสนเทศ",
+                "สำนักศิลปะและวัฒนธรรม",
+                "สำนักบริการวิชาการ",
+                "สถาบันวิจัยและพัฒนา",
+                "ศูนย์การศึกษา / หน่วยงานอื่นๆ"
+            ]
+        };
+
+        let currentUser = null;
+        let loginModalObj = null;
+        let registerModalObj = null;
+        let forgotModalObj = null;
+        let chartInstances = {};
+
+        window.onload = function () {
+            loginModalObj = new bootstrap.Modal(document.getElementById('modalLogin'));
+            registerModalObj = new bootstrap.Modal(document.getElementById('modalRegister'));
+            forgotModalObj = new bootstrap.Modal(document.getElementById('modalForgotPassword'));
+
+            // Check session from localStorage if available
+            const savedUser = localStorage.getItem('npru_alert_user');
+            if (savedUser) {
+                try {
+                    currentUser = JSON.parse(savedUser);
+                    updateNav();
+                    switchView(currentUser.Role === 'Admin' ? 'adminDashboard' : 'report');
+                } catch (e) {
+                    localStorage.removeItem('npru_alert_user');
+                    switchView('welcome');
+                }
+            } else {
+                switchView('welcome');
+            }
+
+            fetchLatestTicker();
+            setInterval(fetchLatestTicker, 30000); // refresh ticker every 30s
+        };
+
+        function showLoader() { document.getElementById('loadingOverlay').classList.remove('hidden'); }
+        function hideLoader() { document.getElementById('loadingOverlay').classList.add('hidden'); }
+
+        // ฟังก์ชันช่วยอัปเดตตัวเลือกสาขาวิชาตามคณะที่เลือก
+        function onFacultySelectChange(facultySelectId, majorSelectId, defaultMajor = '') {
+            const facultyValue = document.getElementById(facultySelectId).value;
+            const majorSelect = document.getElementById(majorSelectId);
+
+            majorSelect.innerHTML = '';
+
+            if (facultyValue && facultyMajorsData[facultyValue]) {
+                majorSelect.disabled = false;
+                const defaultOption = document.createElement('option');
+                defaultOption.value = '';
+                defaultOption.innerText = '-- เลือกสาขาวิชา/หน่วยงานย่อย --';
+                majorSelect.appendChild(defaultOption);
+
+                facultyMajorsData[facultyValue].forEach(major => {
+                    const opt = document.createElement('option');
+                    opt.value = major;
+                    opt.innerText = major;
+                    if (major === defaultMajor) {
+                        opt.selected = true;
+                    }
+                    majorSelect.appendChild(opt);
+                });
+            } else {
+                majorSelect.disabled = true;
+                const opt = document.createElement('option');
+                opt.value = '';
+                opt.innerText = '-- กรุณาเลือกคณะก่อน --';
+                majorSelect.appendChild(opt);
+            }
+        }
+
+        function togglePasswordVisibility(inputId, iconId) {
+            const input = document.getElementById(inputId);
+            const icon = document.getElementById(iconId);
+            if (!input || !icon) return;
+
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
+
+        function checkRegisterPasswordMatch() {
+            const p1 = document.getElementById('regPassword').value;
+            const p2 = document.getElementById('regConfirmPassword').value;
+            const msgEl = document.getElementById('regPassMatchMsg');
+
+            if (!p1 && !p2) {
+                msgEl.innerHTML = '';
+                return;
+            }
+
+            if (p1 === p2 && p1 !== '') {
+                msgEl.innerHTML = '<span class="text-success"><i class="fa-solid fa-circle-check me-1"></i> รหัสผ่านตรงกัน</span>';
+            } else {
+                msgEl.innerHTML = '<span class="text-danger"><i class="fa-solid fa-circle-xmark me-1"></i> รหัสผ่านไม่ตรงกัน</span>';
+            }
+        }
+
+        function checkResetPasswordMatch() {
+            const p1 = document.getElementById('resetPassword').value;
+            const p2 = document.getElementById('resetConfirmPassword').value;
+            const msgEl = document.getElementById('resetPassMatchMsg');
+
+            if (!p1 && !p2) {
+                msgEl.innerHTML = '';
+                return;
+            }
+
+            if (p1 === p2 && p1 !== '') {
+                msgEl.innerHTML = '<span class="text-success"><i class="fa-solid fa-circle-check me-1"></i> รหัสผ่านตรงกัน</span>';
+            } else {
+                msgEl.innerHTML = '<span class="text-danger"><i class="fa-solid fa-circle-xmark me-1"></i> รหัสผ่านไม่ตรงกัน</span>';
+            }
+        }
+
+        function showLoginModal() {
+            if (registerModalObj) registerModalObj.hide();
+            if (forgotModalObj) forgotModalObj.hide();
+            if (loginModalObj) loginModalObj.show();
+        }
+
+        function showSetupModal() {
+            if (loginModalObj) loginModalObj.hide();
+            if (forgotModalObj) forgotModalObj.hide();
+            if (registerModalObj) registerModalObj.show();
+        }
+
+        function showForgotPasswordModal() {
+            if (loginModalObj) loginModalObj.hide();
+            if (forgotModalObj) forgotModalObj.show();
+        }
+
+        function switchView(viewName) {
+            const views = ['viewWelcome', 'viewReport', 'viewHistory', 'viewProfile', 'viewAdminDashboard', 'viewAdminIncidents', 'viewAdminUsers'];
+            views.forEach(v => {
+                const el = document.getElementById(v);
+                if (el) el.classList.add('hidden');
+            });
+
+            document.querySelectorAll('.sidebar-link').forEach(link => link.classList.remove('active'));
+
+            if (viewName === 'welcome') {
+                document.getElementById('viewWelcome').classList.remove('hidden');
+            } else if (viewName === 'report') {
+                document.getElementById('viewReport').classList.remove('hidden');
+            } else if (viewName === 'history') {
+                document.getElementById('viewHistory').classList.remove('hidden');
+                loadUserHistory();
+            } else if (viewName === 'profile') {
+                document.getElementById('viewProfile').classList.remove('hidden');
+                loadProfile();
+            } else if (viewName === 'adminDashboard') {
+                document.getElementById('viewAdminDashboard').classList.remove('hidden');
+                const slink = document.getElementById('slink-adminDashboard');
+                if (slink) slink.classList.add('active');
+                loadAdminDashboard();
+            } else if (viewName === 'adminIncidents') {
+                document.getElementById('viewAdminIncidents').classList.remove('hidden');
+                const slink = document.getElementById('slink-adminIncidents');
+                if (slink) slink.classList.add('active');
+                loadAdminIncidents();
+            } else if (viewName === 'adminUsers') {
+                document.getElementById('viewAdminUsers').classList.remove('hidden');
+                const slink = document.getElementById('slink-adminUsers');
+                if (slink) slink.classList.add('active');
+                loadAdminUsers();
+            }
+        }
+
+        function updateNav() {
+            const navLinks = document.getElementById('navLinksUser');
+            const adminSidebar = document.getElementById('adminSidebar');
+            const btnLogin = document.getElementById('btnLogin');
+            const btnLogout = document.getElementById('btnLogout');
+            const displayUser = document.getElementById('displayUserName');
+
+            if (currentUser) {
+                btnLogin.classList.add('hidden');
+                btnLogout.classList.remove('hidden');
+                displayUser.innerHTML = `<i class="fa-solid fa-user-circle me-1"></i> ${currentUser.Name} (${currentUser.Role})`;
+
+                if (currentUser.Role === 'Admin') {
+                    adminSidebar.classList.remove('hidden');
+                    navLinks.innerHTML = `
+                        <li class="nav-item"><a class="nav-link" href="#" onclick="switchView('adminDashboard')"><i class="fa-solid fa-gauge me-1"></i> Dashboard</a></li>
+                        <li class="nav-item"><a class="nav-link" href="#" onclick="switchView('report')"><i class="fa-solid fa-bullhorn me-1"></i> แจ้งเหตุ</a></li>
+                        <li class="nav-item"><a class="nav-link" href="#" onclick="switchView('history')"><i class="fa-solid fa-history me-1"></i> ประวัติ</a></li>
+                        <li class="nav-item"><a class="nav-link" href="#" onclick="switchView('profile')"><i class="fa-solid fa-id-card me-1"></i> โปรไฟล์</a></li>
+                    `;
+                } else {
+                    adminSidebar.classList.add('hidden');
+                    navLinks.innerHTML = `
+                        <li class="nav-item"><a class="nav-link" href="#" onclick="switchView('report')"><i class="fa-solid fa-bullhorn me-1"></i> แจ้งเหตุฉุกเฉิน</a></li>
+                        <li class="nav-item"><a class="nav-link" href="#" onclick="switchView('history')"><i class="fa-solid fa-clock-rotate-left me-1"></i> ประวัติการแจ้งเหตุ</a></li>
+                        <li class="nav-item"><a class="nav-link" href="#" onclick="switchView('profile')"><i class="fa-solid fa-user me-1"></i> โปรไฟล์ของฉัน</a></li>
+                    `;
+                }
+            } else {
+                adminSidebar.classList.add('hidden');
+                btnLogin.classList.remove('hidden');
+                btnLogout.classList.add('hidden');
+                displayUser.innerText = '';
+                navLinks.innerHTML = '';
+            }
+        }
+
+        function handleLogin(e) {
+            e.preventDefault();
+            showLoader();
+            const email = document.getElementById('loginEmail').value;
+            const pass = document.getElementById('loginPassword').value;
+
+            google.script.run.withSuccessHandler(res => {
+                hideLoader();
+                if (res.success) {
+                    currentUser = res.data;
+                    localStorage.setItem('npru_alert_user', JSON.stringify(currentUser));
+                    if (loginModalObj) loginModalObj.hide();
+                    updateNav();
+                    Swal.fire('ยินดีต้อนรับ', `เข้าสู่ระบบสำเร็จในชื่อ ${currentUser.Name}`, 'success');
+                    switchView(currentUser.Role === 'Admin' ? 'adminDashboard' : 'report');
+                } else {
+                    Swal.fire('เข้าสู่ระบบไม่สำเร็จ', res.message, 'error');
+                }
+            }).withFailureHandler(err => {
+                hideLoader();
+                Swal.fire('ข้อผิดพลาด', err.toString(), 'error');
+            }).loginUser(email, pass);
+        }
+
+        function handleRegister(e) {
+            e.preventDefault();
+
+            const p1 = document.getElementById('regPassword').value;
+            const p2 = document.getElementById('regConfirmPassword').value;
+
+            if (p1 !== p2) {
+                Swal.fire('ข้อผิดพลาด', 'รหัสผ่านและยืนยันรหัสผ่านไม่ตรงกัน', 'warning');
+                return;
+            }
+
+            const facVal = document.getElementById('regFaculty').value;
+            const majVal = document.getElementById('regMajor').value;
+
+            if (!facVal || !majVal) {
+                Swal.fire('ข้อมูลไม่ครบถ้วน', 'กรุณาเลือกคณะและสาขาวิชา', 'warning');
+                return;
+            }
+
+            showLoader();
+            const userData = {
+                name: document.getElementById('regName').value,
+                id: document.getElementById('regId').value,
+                email: document.getElementById('regEmail').value,
+                password: p1,
+                group: document.getElementById('regGroup').value,
+                faculty: facVal,
+                major: majVal,
+                pdpaConsent: document.getElementById('regPdpa').checked
+            };
+
+            google.script.run.withSuccessHandler(res => {
+                hideLoader();
+                if (res.success) {
+                    currentUser = res.data;
+                    localStorage.setItem('npru_alert_user', JSON.stringify(currentUser));
+                    if (registerModalObj) registerModalObj.hide();
+                    updateNav();
+                    Swal.fire('ลงทะเบียนสำเร็จ', 'ยินดีต้อนรับสู่ระบบ NPRU Emergency Alert', 'success');
+                    switchView('report');
+                } else {
+                    Swal.fire('ลงทะเบียนไม่สำเร็จ', res.message, 'error');
+                }
+            }).withFailureHandler(err => {
+                hideLoader();
+                Swal.fire('ข้อผิดพลาด', err.toString(), 'error');
+            }).registerUser(userData);
+        }
+
+        function handleResetPassword(e) {
+            e.preventDefault();
+
+            const p1 = document.getElementById('resetPassword').value;
+            const p2 = document.getElementById('resetConfirmPassword').value;
+
+            if (p1 !== p2) {
+                Swal.fire('ข้อผิดพลาด', 'รหัสผ่านใหม่และยืนยันรหัสผ่านไม่ตรงกัน', 'warning');
+                return;
+            }
+
+            showLoader();
+            const email = document.getElementById('resetEmail').value;
+            const idNum = document.getElementById('resetId').value;
+
+            google.script.run.withSuccessHandler(res => {
+                hideLoader();
+                if (res.success) {
+                    if (forgotModalObj) forgotModalObj.hide();
+                    Swal.fire('สำเร็จ', res.message, 'success');
+                    showLoginModal();
+                } else {
+                    Swal.fire('ไม่สามารถรีเซ็ตรหัสผ่านได้', res.message, 'error');
+                }
+            }).withFailureHandler(err => {
+                hideLoader();
+                Swal.fire('ข้อผิดพลาด', err.toString(), 'error');
+            }).resetPassword(email, idNum, p1);
+        }
+
+        function logout() {
+            currentUser = null;
+            localStorage.removeItem('npru_alert_user');
+            updateNav();
+            switchView('welcome');
+            Swal.fire('ออกจากระบบ', 'ท่านได้ออกจากระบบเรียบร้อยแล้ว', 'info');
+        }
+
+        function handleReport(e) {
+            e.preventDefault();
+            if (!currentUser) {
+                showLoginModal();
+                return;
+            }
+
+            showLoader();
+            const incData = {
+                type: document.getElementById('incType').value,
+                location: document.getElementById('incLocation').value,
+                description: document.getElementById('incDescription').value,
+                reporterEmail: currentUser.Email
+            };
+
+            const fileInput = document.getElementById('incFile');
+            if (fileInput.files.length > 0) {
+                const file = fileInput.files[0];
+                const reader = new FileReader();
+                reader.onload = function (ev) {
+                    incData.fileObj = {
+                        fileName: file.name,
+                        mimeType: file.type,
+                        base64: ev.target.result
+                    };
+                    submitIncident(incData);
+                };
+                reader.readAsDataURL(file);
+            } else {
+                submitIncident(incData);
+            }
+        }
+
+        function submitIncident(incData) {
+            google.script.run.withSuccessHandler(res => {
+                hideLoader();
+                if (res.success) {
+                    Swal.fire('แจ้งเหตุสำเร็จ!', `รหัสอ้างอิง: ${res.incidentId}`, 'success');
+                    document.getElementById('formReportIncident').reset();
+                    fetchLatestTicker();
+                    switchView('history');
+                } else {
+                    Swal.fire('เกิดข้อผิดพลาด', res.message, 'error');
+                }
+            }).withFailureHandler(err => {
+                hideLoader();
+                Swal.fire('ข้อผิดพลาด', err.toString(), 'error');
+            }).reportIncident(incData);
+        }
+
+        function loadUserHistory() {
+            if (!currentUser) return;
+            showLoader();
+            google.script.run.withSuccessHandler(res => {
+                hideLoader();
+                const tbody = document.getElementById('tableUserHistory');
+                tbody.innerHTML = '';
+                if (res.success && res.data && res.data.length > 0) {
+                    res.data.forEach(inc => {
+                        const isResolved = inc.Status.includes('Resolved') || inc.Status.includes('เสร็จสิ้น');
+                        const statusBadge = isResolved ? 'bg-success' : 'bg-warning text-dark';
+                        const attach = inc.AttachmentUrl ? `<a href="${inc.AttachmentUrl}" target="_blank" class="btn btn-sm btn-outline-info"><i class="fa-solid fa-image"></i></a>` : '-';
+                        tbody.innerHTML += `
+                            <tr>
+                                <td class="fw-bold">${inc.IncidentID}</td>
+                                <td class="small">${inc.CreatedAt}</td>
+                                <td>${inc.Type}</td>
+                                <td>${inc.Location}</td>
+                                <td><span class="badge ${statusBadge}">${inc.Status}</span></td>
+                                <td>${attach}</td>
+                            </tr>
+                        `;
+                    });
+                } else {
+                    tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted p-4">ไม่มีประวัติการแจ้งเหตุการณ์</td></tr>`;
+                }
+            }).getIncidents(currentUser.Email);
+        }
+
+        function loadProfile() {
+            if (!currentUser) return;
+            document.getElementById('profileEmail').value = currentUser.Email || '';
+            document.getElementById('profileRole').value = currentUser.Role || 'User';
+            document.getElementById('profileName').value = currentUser.Name || '';
+            document.getElementById('profileId').value = currentUser.ID || '';
+            document.getElementById('profileGroup').value = currentUser.Group || '';
+            
+            const facultyVal = currentUser.Faculty || '';
+            const majorVal = currentUser.Major || '';
+            document.getElementById('profileFaculty').value = facultyVal;
+            
+            // อัปเดตรายชื่อสาขาตามคณะ
+            onFacultySelectChange('profileFaculty', 'profileMajor', majorVal);
+        }
+
+        function handleUpdateProfile(e) {
+            e.preventDefault();
+            showLoader();
+
+            const facVal = document.getElementById('profileFaculty').value;
+            const majVal = document.getElementById('profileMajor').value;
+
+            if (!facVal || !majVal) {
+                hideLoader();
+                Swal.fire('ข้อมูลไม่ครบถ้วน', 'กรุณาเลือกคณะและสาขาวิชา', 'warning');
+                return;
+            }
+
+            const userData = {
+                email: currentUser.Email,
+                name: document.getElementById('profileName').value,
+                id: document.getElementById('profileId').value,
+                group: document.getElementById('profileGroup').value,
+                faculty: facVal,
+                major: majVal
+            };
+
+            google.script.run.withSuccessHandler(res => {
+                hideLoader();
+                if (res.success) {
+                    currentUser.Name = userData.name;
+                    currentUser.ID = userData.id;
+                    currentUser.Group = userData.group;
+                    currentUser.Faculty = userData.faculty;
+                    currentUser.Major = userData.major;
+                    localStorage.setItem('npru_alert_user', JSON.stringify(currentUser));
+                    updateNav();
+                    Swal.fire('บันทึกสำเร็จ', 'อัปเดตข้อมูลส่วนตัวเรียบร้อยแล้ว', 'success');
+                } else {
+                    Swal.fire('ล้มเหลว', res.message, 'error');
+                }
+            }).updateUserProfile(userData);
+        }
+
+        function loadAdminIncidents() {
+            if (!currentUser || currentUser.Role !== 'Admin') return;
+            showLoader();
+            google.script.run.withSuccessHandler(res => {
+                hideLoader();
+                const tbody = document.getElementById('tableAdminIncidents');
+                tbody.innerHTML = '';
+                if (res.success && res.data && res.data.length > 0) {
+                    res.data.forEach(inc => {
+                        const isResolved = inc.Status === 'Resolved' || inc.Status === 'เสร็จสิ้น';
+                        const statusBadge = isResolved ? 'bg-success' : 'bg-warning text-dark';
+                        const toggleBtn = isResolved
+                            ? `<button class="btn btn-sm btn-outline-warning" onclick="changeIncidentStatus('${inc.IncidentID}', 'In Progress')">ปรับเป็น กำลังดำเนินการ</button>`
+                            : `<button class="btn btn-sm btn-success" onclick="changeIncidentStatus('${inc.IncidentID}', 'Resolved')"><i class="fa-solid fa-check me-1"></i> เสร็จสิ้น</button>`;
+                        const attach = inc.AttachmentUrl ? `<a href="${inc.AttachmentUrl}" target="_blank" class="btn btn-sm btn-outline-info"><i class="fa-solid fa-image"></i></a>` : '-';
+
+                        tbody.innerHTML += `
+                            <tr>
+                                <td class="fw-bold">${inc.IncidentID}</td>
+                                <td class="small">${inc.CreatedAt}</td>
+                                <td>${inc.Type}</td>
+                                <td>${inc.Location}</td>
+                                <td class="small">${inc.ReporterEmail}</td>
+                                <td><span class="badge ${statusBadge}">${inc.Status}</span></td>
+                                <td>${attach}</td>
+                                <td class="text-center">${toggleBtn}</td>
+                            </tr>
+                        `;
+                    });
+                } else {
+                    tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted p-4">ไม่มีรายการเหตุการณ์</td></tr>`;
+                }
+            }).getIncidents(currentUser.Email);
+        }
+
+        function changeIncidentStatus(id, newStatus) {
+            Swal.fire({
+                title: 'ยืนยันการเปลี่ยนสถานะ?',
+                text: `ต้องการเปลี่ยนสถานะเหตุการณ์เป็น "${newStatus}" หรือไม่?`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'ตกลง',
+                cancelButtonText: 'ยกเลิก'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    showLoader();
+                    google.script.run.withSuccessHandler(res => {
+                        if (res.success) {
+                            Swal.fire('อัปเดตเรียบร้อย', '', 'success');
+                            loadAdminIncidents();
+                            fetchLatestTicker();
+                        } else {
+                            hideLoader();
+                            Swal.fire('ข้อผิดพลาด', res.message, 'error');
+                        }
+                    }).updateIncidentStatus(id, newStatus);
+                }
+            });
+        }
+
+        function loadAdminUsers() {
+            if (!currentUser || currentUser.Role !== 'Admin') return;
+            showLoader();
+            google.script.run.withSuccessHandler(res => {
+                hideLoader();
+                const tbody = document.getElementById('tableAdminUsers');
+                tbody.innerHTML = '';
+                if (res.success && res.data && res.data.length > 0) {
+                    res.data.forEach(u => {
+                        const isActive = u.Status === 'Active';
+                        const statusBadge = isActive ? 'bg-success' : 'bg-danger';
+                        const toggleBtn = u.Role !== 'Admin' ? (
+                            isActive
+                                ? `<button class="btn btn-sm btn-outline-danger" onclick="toggleUserStatus('${u.Email}', 'Inactive')">ระงับใช้งาน</button>`
+                                : `<button class="btn btn-sm btn-outline-success" onclick="toggleUserStatus('${u.Email}', 'Active')">เปิดใช้งาน</button>`
+                        ) : '-';
+
+                        tbody.innerHTML += `
+                            <tr>
+                                <td class="fw-bold">${u.Name}</td>
+                                <td>${u.ID}</td>
+                                <td>${u.Email}</td>
+                                <td>${u.Faculty}</td>
+                                <td>${u.Major || '-'}</td>
+                                <td><span class="badge bg-secondary">${u.Role}</span></td>
+                                <td><span class="badge ${statusBadge}">${u.Status}</span></td>
+                                <td class="text-center">${toggleBtn}</td>
+                            </tr>
+                        `;
+                    });
+                } else {
+                    tbody.innerHTML = `<tr><td colspan="8" class="text-center text-muted p-4">ไม่มีผู้ใช้งานในระบบ</td></tr>`;
+                }
+            }).getAllUsers(currentUser.Email);
+        }
+
+        function toggleUserStatus(targetEmail, newStatus) {
+            showLoader();
+            google.script.run.withSuccessHandler(res => {
+                if (res.success) {
+                    loadAdminUsers();
+                } else {
+                    hideLoader();
+                    Swal.fire('ข้อผิดพลาด', res.message, 'error');
+                }
+            }).updateUserStatus(currentUser.Email, targetEmail, newStatus);
+        }
+
+        function loadAdminDashboard() {
+            if (!currentUser || currentUser.Role !== 'Admin') return;
+            showLoader();
+
+            google.script.run.withSuccessHandler(res => {
+                if (res.success) {
+                    document.getElementById('statTotal').innerText = res.total;
+                    document.getElementById('statActive').innerText = res.active;
+                    document.getElementById('statResolved').innerText = res.resolved;
+
+                    renderTypeChart(res.typeCount);
+                }
+
+                google.script.run.withSuccessHandler(fRes => {
+                    hideLoader();
+                    if (fRes.success) {
+                        renderFacultyChart(fRes.facultyCount);
+                    }
+                }).getUserFacultyStats(currentUser.Email);
+
+            }).getIncidentStats(currentUser.Email);
+        }
+
+        function renderTypeChart(typeCount) {
+            const ctx = document.getElementById('chartIncTypes').getContext('2d');
+            if (chartInstances.types) chartInstances.types.destroy();
+
+            const labels = Object.keys(typeCount);
+            const data = Object.values(typeCount);
+
+            chartInstances.types = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: ['#D32F2F', '#FF9800', '#2196F3', '#4CAF50', '#9C27B0', '#607D8B']
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
+
+        function renderFacultyChart(facultyCount) {
+            const ctx = document.getElementById('chartFaculties').getContext('2d');
+            if (chartInstances.faculties) chartInstances.faculties.destroy();
+
+            const labels = Object.keys(facultyCount);
+            const data = Object.values(facultyCount);
+
+            chartInstances.faculties = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'จำนวนผู้ลงทะเบียน (คน)',
+                        data: data,
+                        backgroundColor: '#006837'
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
+
+        function fetchLatestTicker() {
+            google.script.run.withSuccessHandler(res => {
+                const tickerWrap = document.getElementById('emergencyTicker');
+                const tickerTitle = tickerWrap ? tickerWrap.querySelector('.ticker-title') : null;
+                const tickerMsg = document.getElementById('tickerMessage');
+
+                if (res.success && res.data) {
+                    // มีเหตุฉุกเฉิน -> แถบสีแดง
+                    if (tickerWrap) {
+                        tickerWrap.style.backgroundColor = '#ffebee';
+                        tickerWrap.style.borderBottom = '2px solid var(--npru-red)';
+                    }
+                    if (tickerTitle) {
+                        tickerTitle.style.backgroundColor = 'var(--npru-red)';
+                        tickerTitle.style.animation = 'pulse-red 1.5s infinite';
+                        tickerTitle.innerHTML = '<i class="fa-solid fa-bell me-1"></i> เหตุด่วนล่าสุด';
+                    }
+                    if (tickerMsg) {
+                        tickerMsg.style.color = 'var(--npru-red)';
+                        tickerMsg.innerText = `🚨 [${res.data.IncidentID}] ${res.data.Type} - ${res.data.Location} (${res.data.Description || 'ไม่มีรายละเอียด'}) - แจ้งเมื่อ: ${res.data.CreatedAt}`;
+                    }
+                } else {
+                    // สถานการณ์ปกติ -> แถบสีเขียว
+                    if (tickerWrap) {
+                        tickerWrap.style.backgroundColor = '#e8f5e9';
+                        tickerWrap.style.borderBottom = '2px solid #2e7d32';
+                    }
+                    if (tickerTitle) {
+                        tickerTitle.style.backgroundColor = '#2e7d32';
+                        tickerTitle.style.animation = 'none';
+                        tickerTitle.innerHTML = '<i class="fa-solid fa-shield-halved me-1"></i> สถานการณ์ปกติ';
+                    }
+                    if (tickerMsg) {
+                        tickerMsg.style.color = '#2e7d32';
+                        tickerMsg.innerText = 'ไม่มีเหตุการณ์ฉุกเฉินในขณะนี้ - สถานการณ์ปกติ';
+                    }
+                }
+            }).getLatestIncident();
+        }
+
+        function exportToPDF(elementId, filename) {
+            const element = document.getElementById(elementId);
+            const opt = {
+                margin: 0.5,
+                filename: `${filename}_${new Date().toISOString().slice(0, 10)}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2 },
+                jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+            };
+            html2pdf().set(opt).from(element).save();
+        }
+    </script>
+</body>
+
+</html>
